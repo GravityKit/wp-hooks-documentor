@@ -34,6 +34,10 @@ export interface Hook {
       type: string;
       description: string;
     };
+    uses?: Array<{
+      name: string;
+      description: string;
+    }>;
   };
   source: string;
 }

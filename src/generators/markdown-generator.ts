@@ -102,6 +102,19 @@ export class MarkdownGenerator {
       content.push('');
     }
 
+    // Add uses section if there are uses
+    if (hook.doc.uses && hook.doc.uses.length > 0) {
+      content.push('## Uses\n');
+      hook.doc.uses.forEach((use) => {
+        if (use.name && use.description) {
+          content.push(`- \`${this.sanitizeContent(use.name)}\`: ${this.sanitizeContent(use.description, true)}`);
+        } else if (use.description) {
+          content.push(`- ${this.sanitizeContent(use.description, true)}`);
+        }
+      });
+      content.push('');
+    }
+
     // Add since and source info
     if (hook.doc.since && hook.doc.since.length > 0) {
       content.push('### Since\n');

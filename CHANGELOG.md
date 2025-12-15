@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/), and will adhere to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - TBD
+### Added
+- Support for `@uses` parameter in hook documentation to document functions, methods, or constants used by a hook.
 
 ### Added
 - New `--skip-build` CLI option to parse hooks and generate markdown without building the Docusaurus site.

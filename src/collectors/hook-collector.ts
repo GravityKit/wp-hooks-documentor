@@ -169,7 +169,11 @@ export class HookCollector {
             })) || [],
         tags:
           hook.doc?.tags?.filter(
-            (tag) => tag.name !== 'param' && tag.name !== 'return' && tag.name !== 'since'
+            (tag) =>
+              tag.name !== 'param' &&
+              tag.name !== 'return' &&
+              tag.name !== 'since' &&
+              tag.name !== 'uses'
           ) || [],
         return:
           (hook.doc?.tags
@@ -178,6 +182,13 @@ export class HookCollector {
               type: tag.types?.join('|') || '',
               description: tag.content || '',
             })) || [])[0] || null,
+        uses:
+          hook.doc?.tags
+            ?.filter((tag) => tag.name === 'uses')
+            ?.map((tag) => ({
+              name: tag.variable || '',
+              description: tag.content || '',
+            })) || [],
       },
       source: hook.source,
     };
