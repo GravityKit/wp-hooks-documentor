@@ -82,11 +82,13 @@ The tool uses a single configuration file (`wp-hooks-doc.json`) to control all a
 - `templatesDir`: Custom templates directory to customize overall documentation site.
 - `footerStyle`: Footer style, eg: dark or light
 - `footerCopyright`: Footer copyright text
+- `skipBuild`: Set to `true` to skip building the Docusaurus site (only parse hooks and generate markdown)
 
 ## Commands
 
 - `wp-hooks-documentor init`: Create a new configuration file
 - `wp-hooks-documentor generate`: Generate complete documentation
+- `wp-hooks-documentor generate --skip-build`: Parse hooks and generate markdown without building the Docusaurus site
 
 ## Customization
 

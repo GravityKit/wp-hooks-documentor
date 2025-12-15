@@ -150,6 +150,7 @@ export interface WPHooksDocConfig {
 
   // Output configuration
   clean?: boolean;
+  skipBuild?: boolean;
 }
 
 export interface HookCollectorConfig {

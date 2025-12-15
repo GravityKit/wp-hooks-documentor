@@ -52,29 +52,34 @@ export class Orchestrator {
         console.log('✅ Markdown documentation generated');
       }
 
-      // Build Docusaurus site
-      console.log('🏗️  Building documentation site...');
-      const siteGenerator = new DocusaurusSiteGenerator(
-        {
-          title: this.config.title || 'Plugin Hooks Documentation',
-          tagline: this.config.tagline || 'Hooks Documentation for Plugin',
-          url: this.config.url || 'https://example.com',
-          baseUrl: this.config.baseUrl || '/',
-          repoUrl: this.config.repoUrl || 'https://github.com/10up/wp-hooks-documentor',
-          organizationName: this.config.organizationName,
-          projectName: this.config.projectName,
-          templatesDir: this.config.templatesDir,
-          footerStyle: this.config.footerStyle || 'dark',
-          footerCopyright:
-            this.config.footerCopyright ||
-            `Copyright © ${new Date().getFullYear().toString()} ${this.config.title || ''}. Built with WP Hooks Documentor.`,
-        },
-        path.join(this.workingDir, this.config.outputDir)
-      );
-      await siteGenerator.initializeSite();
-      siteGenerator.buildSite();
-      console.log('✅ Documentation site built');
-      console.log('🎉 Documentation generation complete!');
+      // Build Docusaurus site (unless skipped)
+      if (this.config.skipBuild) {
+        console.log('⏭️  Skipping site build (--skip-build flag set)');
+        console.log('🎉 Hook parsing and markdown generation complete!');
+      } else {
+        console.log('🏗️  Building documentation site...');
+        const siteGenerator = new DocusaurusSiteGenerator(
+          {
+            title: this.config.title || 'Plugin Hooks Documentation',
+            tagline: this.config.tagline || 'Hooks Documentation for Plugin',
+            url: this.config.url || 'https://example.com',
+            baseUrl: this.config.baseUrl || '/',
+            repoUrl: this.config.repoUrl || 'https://github.com/10up/wp-hooks-documentor',
+            organizationName: this.config.organizationName,
+            projectName: this.config.projectName,
+            templatesDir: this.config.templatesDir,
+            footerStyle: this.config.footerStyle || 'dark',
+            footerCopyright:
+              this.config.footerCopyright ||
+              `Copyright © ${new Date().getFullYear().toString()} ${this.config.title || ''}. Built with WP Hooks Documentor.`,
+          },
+          path.join(this.workingDir, this.config.outputDir)
+        );
+        await siteGenerator.initializeSite();
+        siteGenerator.buildSite();
+        console.log('✅ Documentation site built');
+        console.log('🎉 Documentation generation complete!');
+      }
     } catch (error) {
       console.error('❌ Error generating documentation:', error);
       throw error;

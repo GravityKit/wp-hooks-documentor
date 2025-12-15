@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
+### Added
+- New `--skip-build` CLI option to parse hooks and generate markdown without building the Docusaurus site.
+- New `skipBuild` configuration option for the same functionality via config file.
+
 ## [1.0.1] - 2025-09-12
 ### Fixed
 - Ensure multiple parameter types and duplicate hooks are handled properly (props [@dkotter](https://github.com/dkotter), [@iamdharmesh](https://github.com/iamdharmesh) via [#6](https://github.com/10up/wp-hooks-documentor/pull/6))

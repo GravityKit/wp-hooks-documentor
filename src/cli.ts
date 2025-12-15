@@ -33,6 +33,7 @@ program
   .command('generate')
   .description('Generate complete hook documentation')
   .option('-c, --config <path>', 'Path to configuration file', 'wp-hooks-doc.json')
+  .option('--skip-build', 'Skip building the Docusaurus site (only parse hooks and generate markdown)')
   .action(async (options) => {
     try {
       const configPath = path.resolve(process.cwd(), options.config);
@@ -44,6 +45,12 @@ program
 
       const givenConfig: WPHooksDocConfig = await fs.readJSON(configPath);
       const config = { ...defaultConfig, ...givenConfig }; // Override default config with given config
+
+      // CLI flag overrides config file
+      if (options.skipBuild) {
+        config.skipBuild = true;
+      }
+
       const orchestrator = new Orchestrator(config);
 
       await orchestrator.run();
