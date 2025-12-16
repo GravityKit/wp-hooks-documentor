@@ -51,6 +51,10 @@ export interface Hook {
       url: string;         // URL from @link
       description: string; // Link text/description
     }>;
+    deprecated?: Array<{
+      version: string;     // Semantic version when deprecated
+      description: string; // Reason/alternative from @deprecated
+    }>;
   };
   source: string;
 }

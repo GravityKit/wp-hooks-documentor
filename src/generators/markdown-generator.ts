@@ -82,6 +82,24 @@ export class MarkdownGenerator {
 
     // Add hook name and description
     content.push(`# ${type}: ${this.sanitizeHookName(hook.name)}\n`);
+
+    // Add deprecation notice prominently at the top
+    if (hook.doc.deprecated && hook.doc.deprecated.length > 0) {
+      content.push(':::warning[Deprecated]\n');
+      hook.doc.deprecated.forEach((dep) => {
+        if (dep.version && dep.description) {
+          content.push(`**Deprecated since ${dep.version}.** ${this.sanitizeContent(dep.description, true)}\n`);
+        } else if (dep.version) {
+          content.push(`**Deprecated since ${dep.version}.**\n`);
+        } else if (dep.description) {
+          content.push(`**Deprecated.** ${this.sanitizeContent(dep.description, true)}\n`);
+        } else {
+          content.push('**This hook is deprecated.**\n');
+        }
+      });
+      content.push(':::\n');
+    }
+
     if (hook.doc.description) {
       content.push(`${this.sanitizeContent(hook.doc.description, true)}\n`);
     }
@@ -257,8 +275,9 @@ export class MarkdownGenerator {
     if (hookCollection.actions.length > 0) {
       content.push('### Actions\n');
       hookCollection.actions.forEach((hook) => {
+        const deprecatedMarker = hook.doc.deprecated && hook.doc.deprecated.length > 0 ? ' ⚠️ _Deprecated_' : '';
         content.push(
-          `- [${this.sanitizeHookName(hook.name)}](./Actions/${hook.id}.md) - ${
+          `- [${this.sanitizeHookName(hook.name)}](./Actions/${hook.id}.md)${deprecatedMarker} - ${
             hook.doc.description || ''
           }`
         );
@@ -270,8 +289,9 @@ export class MarkdownGenerator {
     if (hookCollection.filters.length > 0) {
       content.push('### Filters\n');
       hookCollection.filters.forEach((hook) => {
+        const deprecatedMarker = hook.doc.deprecated && hook.doc.deprecated.length > 0 ? ' ⚠️ _Deprecated_' : '';
         content.push(
-          `- [${this.sanitizeHookName(hook.name)}](./Filters/${hook.id}.md) - ${
+          `- [${this.sanitizeHookName(hook.name)}](./Filters/${hook.id}.md)${deprecatedMarker} - ${
             hook.doc.description || ''
           }`
         );

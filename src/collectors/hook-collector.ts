@@ -247,7 +247,8 @@ export class HookCollector {
               tag.name !== 'since' &&
               tag.name !== 'uses' &&
               tag.name !== 'see' &&
-              tag.name !== 'link'
+              tag.name !== 'link' &&
+              tag.name !== 'deprecated'
           ) || [],
         return:
           (hook.doc?.tags
@@ -308,6 +309,26 @@ export class HookCollector {
               return {
                 url: parsed.reference,
                 description: parsed.description,
+              };
+            }) || [],
+        deprecated:
+          hook.doc?.tags
+            ?.filter((tag) => tag.name === 'deprecated')
+            ?.map((tag) => {
+              // Parse @deprecated [version] [description]
+              const content = tag.content?.trim() || '';
+              // Match optional semantic version at start, rest is description
+              const versionMatch = content.match(/^(\d+\.\d+(?:\.\d+)?(?:-[a-zA-Z0-9.-]+)?)\s*(.*)/);
+              if (versionMatch) {
+                return {
+                  version: versionMatch[1],
+                  description: versionMatch[2] || '',
+                };
+              }
+              // No version found, treat entire content as description
+              return {
+                version: '',
+                description: content,
               };
             }) || [],
       },
