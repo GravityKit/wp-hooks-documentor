@@ -200,7 +200,8 @@ export class HookCollector {
 
   private getHookId(hookName: string): string {
     return hookName
-      .replace(/[^a-zA-Z0-9\-_.~]/g, '')
+      .replace(/\//g, '-')                // Replace slashes with dashes
+      .replace(/[^a-zA-Z0-9\-_.~]/g, '')  // Strip remaining non-allowed characters
       .replace(/^__/, '')
       .replace(/^_/, '');
   }
