@@ -129,6 +129,23 @@ export class MarkdownGenerator {
       content.push('');
     }
 
+    // Add examples section if there are examples
+    if (hook.doc.examples && hook.doc.examples.length > 0) {
+      const hasMultiple = hook.doc.examples.length > 1;
+      content.push(hasMultiple ? '## Examples\n' : '## Example\n');
+      hook.doc.examples.forEach((example, index) => {
+        if (hasMultiple) {
+          content.push(`### Example ${index + 1}\n`);
+        }
+        if (example.description) {
+          content.push(`${this.sanitizeContent(example.description, true)}\n`);
+        }
+        content.push('```php');
+        content.push(example.code);
+        content.push('```\n');
+      });
+    }
+
     // Add uses section if there are uses
     if (hook.doc.uses && hook.doc.uses.length > 0) {
       content.push('## Uses\n');

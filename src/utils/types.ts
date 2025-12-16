@@ -55,6 +55,10 @@ export interface Hook {
       version: string;     // Semantic version when deprecated
       description: string; // Reason/alternative from @deprecated
     }>;
+    examples?: Array<{
+      description: string; // Optional description before code
+      code: string;        // Code block content from @example
+    }>;
   };
   source: string;
 }

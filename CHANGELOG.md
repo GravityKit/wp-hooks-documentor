@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file, per [the Ke
   - Note: The PHP parser (wp-hooks/generator) doesn't currently support `@uses` tags in docblocks. A PR has been submitted upstream to add this functionality.
 - Support for `@see` and `@link` tags in hook documentation. These are rendered in a "See Also" section with proper link formatting.
 - Support for `@deprecated` tag in hook documentation. Deprecated hooks display a prominent warning admonition and are marked with ⚠️ in the index listing.
+- Support for `@example` tag in hook documentation. Multiple examples per hook are supported, rendered as PHP code blocks with optional descriptions.
 - New `--skip-build` CLI option to parse hooks and generate markdown without building the Docusaurus site.
 - New `skipBuild` configuration option for the same functionality via config file.
 

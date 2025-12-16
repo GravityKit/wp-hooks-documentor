@@ -248,7 +248,8 @@ export class HookCollector {
               tag.name !== 'uses' &&
               tag.name !== 'see' &&
               tag.name !== 'link' &&
-              tag.name !== 'deprecated'
+              tag.name !== 'deprecated' &&
+              tag.name !== 'example'
           ) || [],
         return:
           (hook.doc?.tags
@@ -329,6 +330,34 @@ export class HookCollector {
               return {
                 version: '',
                 description: content,
+              };
+            }) || [],
+        examples:
+          hook.doc?.tags
+            ?.filter((tag) => tag.name === 'example')
+            ?.map((tag) => {
+              const content = tag.content?.trim() || '';
+              // Check if content starts with a markdown code fence
+              const fencedMatch = content.match(/^```(\w*)\n([\s\S]*?)```\s*([\s\S]*)$/);
+              if (fencedMatch) {
+                return {
+                  description: fencedMatch[3]?.trim() || '',
+                  code: fencedMatch[2]?.trim() || '',
+                };
+              }
+              // Check if there's a description before the code (text before first line of code)
+              // Code typically starts with add_filter, add_action, apply_filters, do_action, <?, or function
+              const codeStartMatch = content.match(/^(.*?)((?:add_filter|add_action|apply_filters|do_action|<\?php|function\s)[\s\S]*)$/s);
+              if (codeStartMatch && codeStartMatch[1]) {
+                return {
+                  description: codeStartMatch[1].trim(),
+                  code: codeStartMatch[2].trim(),
+                };
+              }
+              // Treat entire content as code
+              return {
+                description: '',
+                code: content,
               };
             }) || [],
       },
