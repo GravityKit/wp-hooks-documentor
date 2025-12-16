@@ -98,6 +98,15 @@ export class MarkdownGenerator {
         content.push(
           `| ${this.sanitizeContent(param.name)} | \`${this.sanitizeContent(param.type)}\` | ${this.sanitizeContent(param.description, true)} |`
         );
+
+        // Add nested @type parameters if they exist
+        if (param.types && param.types.length > 0) {
+          param.types.forEach((nestedType) => {
+            content.push(
+              `| ↳ ${this.sanitizeContent(nestedType.name)} | \`${this.sanitizeContent(nestedType.type)}\` | ${this.sanitizeContent(nestedType.description, true)} |`
+            );
+          });
+        }
       });
       content.push('');
     }

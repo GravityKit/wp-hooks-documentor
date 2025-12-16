@@ -136,6 +136,35 @@ export class HookCollector {
     return escapedHookName;
   }
 
+  private parseNestedTypes(description: string): {
+    description: string;
+    types: { name: string; type: string; description: string }[];
+  } {
+    if (!description.includes('@type')) {
+      return { description, types: [] };
+    }
+
+    const types: { name: string; type: string; description: string }[] = [];
+    const typeRegex = /@type\s+([^\s]+)\s+(\$[^\s]+)\s+([^\n@}]+)/g;
+    let match;
+
+    while ((match = typeRegex.exec(description)) !== null) {
+      types.push({
+        type: match[1].trim(),
+        name: match[2].trim(),
+        description: match[3].trim(),
+      });
+    }
+
+    let cleanDescription = description
+      .replace(/@type[^\n]+/g, '')
+      .replace(/\{\s*/g, '')
+      .replace(/\s*\}/g, '')
+      .trim();
+
+    return { description: cleanDescription, types };
+  }
+
   private getHookId(hookName: string): string {
     return hookName
       .replace(/[^a-zA-Z0-9\-_.~]/g, '')
@@ -162,11 +191,15 @@ export class HookCollector {
         params:
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'param')
-            ?.map((p) => ({
-              name: p.variable || '',
-              type: p.types?.join('|') || '',
-              description: p.content || '',
-            })) || [],
+            ?.map((p) => {
+              const parsed = this.parseNestedTypes(p.content || '');
+              return {
+                name: p.variable || '',
+                type: p.types?.join('|') || '',
+                description: parsed.description,
+                types: parsed.types.length > 0 ? parsed.types : undefined,
+              };
+            }) || [],
         tags:
           hook.doc?.tags?.filter(
             (tag) =>

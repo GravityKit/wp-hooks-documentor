@@ -29,6 +29,11 @@ export interface Hook {
       name: string;
       type: string;
       description: string;
+      types?: {
+        name: string;
+        type: string;
+        description: string;
+      }[];
     }[];
     return?: {
       type: string;
