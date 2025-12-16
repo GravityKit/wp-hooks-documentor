@@ -336,13 +336,26 @@ export class HookCollector {
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'example')
             ?.map((tag) => {
-              const content = tag.content?.trim() || '';
+              // Replace escape sequences with */ to allow docblocks in examples
+              // Supports: CLOSE_DOCBLOCK, *\/, and *​/ (with zero-width space)
+              const content = (tag.content?.trim() || '')
+                .replace(/CLOSE_DOCBLOCK/g, '*/')
+                .replace(/\*\\\//g, '*/')
+                .replace(/\*\u200B\//g, '*/');
               // Check if content starts with a markdown code fence
               const fencedMatch = content.match(/^```(\w*)\n([\s\S]*?)```\s*([\s\S]*)$/);
               if (fencedMatch) {
                 return {
                   description: fencedMatch[3]?.trim() || '',
                   code: fencedMatch[2]?.trim() || '',
+                };
+              }
+              // If content contains a docblock (/**), treat entire content as code
+              // since docblocks are part of the code example
+              if (content.includes('/**')) {
+                return {
+                  description: '',
+                  code: content,
                 };
               }
               // Check if there's a description before the code (text before first line of code)
