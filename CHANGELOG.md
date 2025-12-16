@@ -4,9 +4,10 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 ### Added
-- Support for `@uses` parameter in hook documentation to document functions, methods, or constants used by a hook.
-
-### Added
+- Support for WordPress `@type` notation in `@param` tags to document nested array structures. Nested types display with ↳ prefix in parameter tables.
+- Support for `@uses` tag in hook documentation to document functions, methods, or constants used by a hook.
+  - Note: The PHP parser (wp-hooks/generator) doesn't currently support `@uses` tags in docblocks. A PR has been submitted upstream to add this functionality.
+- Support for `@see` and `@link` tags in hook documentation. These are rendered in a "See Also" section with proper link formatting.
 - New `--skip-build` CLI option to parse hooks and generate markdown without building the Docusaurus site.
 - New `skipBuild` configuration option for the same functionality via config file.
 
