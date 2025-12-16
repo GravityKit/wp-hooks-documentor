@@ -318,12 +318,16 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 
 				if ( ! method_exists( $tag, 'getVersion' ) && method_exists( $tag, 'getDescription' ) ) {
 					$content = (string) $tag->getDescription();
-					$content = preg_replace( '#\n\s+#', ' ', $content );
+					// Preserve newlines for @example tags (code examples need formatting)
+					if ( $tag->getName() !== 'example' ) {
+						$content = preg_replace( '#\n\s+#', ' ', $content );
+					}
 				}
 
 				$tag_data = [
 					'name' => $tag->getName(),
-					'content' => fix_newlines($content),
+					// Preserve raw content for @example tags (code needs formatting)
+					'content' => $tag->getName() === 'example' ? $content : fix_newlines($content),
 				];
 
 				if ( $tag instanceof \phpDocumentor\Reflection\DocBlock\Tags\InvalidTag && $tag->getName() === 'since' ) {
