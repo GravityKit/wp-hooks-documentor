@@ -199,9 +199,14 @@ export class HookCollector {
   }
 
   private getHookId(hookName: string): string {
-    return hookName
-      .replace(/\//g, '-')                // Replace slashes with dashes
-      .replace(/[^a-zA-Z0-9\-_.~]/g, '')  // Strip remaining non-allowed characters
+    let id = hookName;
+
+    // Replace slashes with configured replacement character (default: strip)
+    const slashReplacement = this.config.hookIdSlashReplacement ?? '';
+    id = id.replace(/\//g, slashReplacement);
+
+    return id
+      .replace(/[^a-zA-Z0-9\-_.~]/g, '')
       .replace(/^__/, '')
       .replace(/^_/, '');
   }

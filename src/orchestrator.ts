@@ -33,6 +33,7 @@ export class Orchestrator {
         ignoreFiles: this.config.ignoreFiles || [],
         ignoreHooks: this.config.ignoreHooks || [],
         outputDir: this.config.outputDir || './wp-hooks-docs',
+        hookIdSlashReplacement: this.config.hookIdSlashReplacement,
       });
       const hookData = await collector.collect();
       console.log(

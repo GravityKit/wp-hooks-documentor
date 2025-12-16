@@ -170,6 +170,15 @@ export interface WPHooksDocConfig {
   // Output configuration
   clean?: boolean;
   skipBuild?: boolean;
+
+  // Hook ID configuration
+  /**
+   * Character to replace slashes with in hook IDs.
+   * Set to '-' to convert 'example/hook' to 'example-hook'.
+   * Set to '' (empty string) to strip slashes entirely (default for backwards compatibility).
+   * @default ''
+   */
+  hookIdSlashReplacement?: string;
 }
 
 export interface HookCollectorConfig {
@@ -177,6 +186,11 @@ export interface HookCollectorConfig {
   outputDir: string;
   ignoreFiles: string[];
   ignoreHooks: string[];
+  /**
+   * Character to replace slashes with in hook IDs.
+   * @default ''
+   */
+  hookIdSlashReplacement?: string;
 }
 
 export interface CommandOptions {
