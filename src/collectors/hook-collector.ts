@@ -136,6 +136,39 @@ export class HookCollector {
     return escapedHookName;
   }
 
+  /**
+   * Parse @uses, @see, or @link tag content to extract reference and description.
+   * Format: "reference description" where reference is a FQSEN or URL
+   */
+  private parseTagReference(content: string): { reference: string; description: string } {
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return { reference: '', description: '' };
+    }
+
+    // URL pattern - extract URL and rest as description
+    const urlMatch = trimmed.match(/^(https?:\/\/\S+)\s*(.*)/i);
+    if (urlMatch) {
+      return {
+        reference: urlMatch[1],
+        description: urlMatch[2] || '',
+      };
+    }
+
+    // FQSEN pattern - class, method, function, property, constant references
+    // Examples: MyClass, MyClass::method(), MyClass::$property, MyClass::CONSTANT
+    const fqsenMatch = trimmed.match(/^(\\?[a-zA-Z_][a-zA-Z0-9_\\]*(?:::[a-zA-Z_$][a-zA-Z0-9_]*(?:\(\))?)?)\s*(.*)/);
+    if (fqsenMatch) {
+      return {
+        reference: fqsenMatch[1],
+        description: fqsenMatch[2] || '',
+      };
+    }
+
+    // If no clear pattern, treat entire content as description
+    return { reference: '', description: trimmed };
+  }
+
   private parseNestedTypes(description: string): {
     description: string;
     types: { name: string; type: string; description: string }[];
@@ -220,24 +253,57 @@ export class HookCollector {
         uses:
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'uses')
-            ?.map((tag) => ({
-              name: tag.variable || '',
-              description: tag.content || '',
-            })) || [],
+            ?.map((tag) => {
+              // If variable field is provided by parser, use it
+              if (tag.variable) {
+                return {
+                  name: tag.variable,
+                  description: tag.content || '',
+                };
+              }
+              // Otherwise parse from content: "@uses FQSEN description"
+              const parsed = this.parseTagReference(tag.content || '');
+              return {
+                name: parsed.reference,
+                description: parsed.description,
+              };
+            }) || [],
         see:
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'see')
-            ?.map((tag) => ({
-              reference: tag.refers || '',
-              description: tag.content || '',
-            })) || [],
+            ?.map((tag) => {
+              // If refers field is provided by parser, use it
+              if (tag.refers) {
+                return {
+                  reference: tag.refers,
+                  description: tag.content || '',
+                };
+              }
+              // Otherwise parse from content: "@see URI|FQSEN description"
+              const parsed = this.parseTagReference(tag.content || '');
+              return {
+                reference: parsed.reference,
+                description: parsed.description,
+              };
+            }) || [],
         link:
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'link')
-            ?.map((tag) => ({
-              url: tag.link || '',
-              description: tag.content || '',
-            })) || [],
+            ?.map((tag) => {
+              // If link field is provided by parser, use it
+              if (tag.link) {
+                return {
+                  url: tag.link,
+                  description: tag.content || '',
+                };
+              }
+              // Otherwise parse from content: "@link URL description"
+              const parsed = this.parseTagReference(tag.content || '');
+              return {
+                url: parsed.reference,
+                description: parsed.description,
+              };
+            }) || [],
       },
       source: hook.source,
     };
