@@ -124,6 +124,49 @@ export class MarkdownGenerator {
       content.push('');
     }
 
+    // Add see also section if there are @see or @link tags
+    const seeItems = hook.doc.see || [];
+    const linkItems = hook.doc.link || [];
+
+    if (seeItems.length > 0 || linkItems.length > 0) {
+      content.push('## See Also\n');
+
+      // Process @see tags
+      seeItems.forEach((see) => {
+        const reference = see.reference.trim();
+        const description = see.description.trim();
+
+        if (reference.startsWith('http://') || reference.startsWith('https://')) {
+          // It's a URL - create a link with description
+          const linkText = description || 'External reference';
+          content.push(`- [${this.sanitizeContent(linkText, true)}](${reference})`);
+        } else if (reference) {
+          // It's a code reference (function, class, etc.)
+          if (description) {
+            content.push(`- \`${this.sanitizeContent(reference)}\` - ${this.sanitizeContent(description, true)}`);
+          } else {
+            content.push(`- \`${this.sanitizeContent(reference)}\``);
+          }
+        } else if (description) {
+          // No reference, just description
+          content.push(`- ${this.sanitizeContent(description, true)}`);
+        }
+      });
+
+      // Process @link tags
+      linkItems.forEach((link) => {
+        const url = link.url.trim();
+        const description = link.description.trim();
+
+        if (url) {
+          const linkText = description || url;
+          content.push(`- [${this.sanitizeContent(linkText, true)}](${url})`);
+        }
+      });
+
+      content.push('');
+    }
+
     // Add since and source info
     if (hook.doc.since && hook.doc.since.length > 0) {
       content.push('### Since\n');

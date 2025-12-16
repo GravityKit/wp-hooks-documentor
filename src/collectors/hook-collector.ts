@@ -206,7 +206,9 @@ export class HookCollector {
               tag.name !== 'param' &&
               tag.name !== 'return' &&
               tag.name !== 'since' &&
-              tag.name !== 'uses'
+              tag.name !== 'uses' &&
+              tag.name !== 'see' &&
+              tag.name !== 'link'
           ) || [],
         return:
           (hook.doc?.tags
@@ -220,6 +222,20 @@ export class HookCollector {
             ?.filter((tag) => tag.name === 'uses')
             ?.map((tag) => ({
               name: tag.variable || '',
+              description: tag.content || '',
+            })) || [],
+        see:
+          hook.doc?.tags
+            ?.filter((tag) => tag.name === 'see')
+            ?.map((tag) => ({
+              reference: tag.refers || '',
+              description: tag.content || '',
+            })) || [],
+        link:
+          hook.doc?.tags
+            ?.filter((tag) => tag.name === 'link')
+            ?.map((tag) => ({
+              url: tag.link || '',
               description: tag.content || '',
             })) || [],
       },

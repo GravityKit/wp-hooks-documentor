@@ -43,6 +43,14 @@ export interface Hook {
       name: string;
       description: string;
     }>;
+    see?: Array<{
+      reference: string;   // URL or code reference from @see
+      description: string; // Description text
+    }>;
+    link?: Array<{
+      url: string;         // URL from @link
+      description: string; // Link text/description
+    }>;
   };
   source: string;
 }
@@ -81,6 +89,8 @@ export interface RawHookData {
         content: string;
         types?: string[];
         variable?: string;
+        refers?: string;  // For @see tags - contains the URL or reference
+        link?: string;    // For @link tags - contains the URL
       }>;
     };
     source: string;
