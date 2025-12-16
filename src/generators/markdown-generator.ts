@@ -129,7 +129,7 @@ export class MarkdownGenerator {
     const linkItems = hook.doc.link || [];
 
     if (seeItems.length > 0 || linkItems.length > 0) {
-      content.push('## See Also\n');
+      content.push('### See Also\n');
 
       // Process @see tags
       seeItems.forEach((see) => {
