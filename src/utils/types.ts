@@ -10,6 +10,13 @@ export interface Hook {
   file: string;
   files?: HookFile[];
   line?: number;
+  /**
+   * Dynamic hook name modifiers (e.g., form_id, field_id, entry_id).
+   * Present when using gf_apply_filters() or gf_do_action() with array syntax.
+   * Example: gf_apply_filters( array( 'gform_pre_render', $form_id ), ... )
+   * would have modifiers: ['$form_id']
+   */
+  modifiers?: string[];
   doc: {
     description?: string;
     long_description?: string;
@@ -88,6 +95,7 @@ export interface RawHookData {
     file: string;
     files?: HookFile[];
     line?: number;
+    modifiers?: string[];
     doc?: {
       description?: string;
       long_description?: string;

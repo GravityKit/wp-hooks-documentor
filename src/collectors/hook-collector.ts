@@ -375,6 +375,8 @@ export class HookCollector {
             }) || [],
       },
       source: hook.source,
+      // Include modifiers for hooks using gf_apply_filters/gf_do_action with array syntax
+      ...(hook.modifiers && hook.modifiers.length > 0 ? { modifiers: hook.modifiers } : {}),
     };
   }
 }

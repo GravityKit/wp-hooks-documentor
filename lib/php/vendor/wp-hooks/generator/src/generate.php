@@ -205,6 +205,9 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 		'apply_filters',
 		'do_action_ref_array',
 		'apply_filters_ref_array',
+		// Gravity Forms hook functions that support dynamic modifiers (form_id, field_id, etc.)
+		'gf_do_action',
+		'gf_apply_filters',
 	];
 
 	foreach ( $files as $filename ) {
@@ -260,7 +263,31 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 			}
 
 			$printer = new Standard();
-			$hook_name = $printer->prettyPrintExpr( $expr->args[0]->value );
+			$firstArg = $expr->args[0]->value;
+			$hook_modifiers = [];
+
+			// Handle Gravity Forms style hooks where first arg is array( 'hook_name', $modifier1, $modifier2, ... )
+			if ( $firstArg instanceof Node\Expr\Array_ ) {
+				$arrayItems = $firstArg->items;
+				if ( ! empty( $arrayItems ) && $arrayItems[0] instanceof Node\Expr\ArrayItem ) {
+					// First element is the hook name
+					$hook_name = $printer->prettyPrintExpr( $arrayItems[0]->value );
+
+					// Remaining elements are modifiers (form_id, field_id, etc.)
+					for ( $i = 1; $i < count( $arrayItems ); $i++ ) {
+						if ( $arrayItems[$i] instanceof Node\Expr\ArrayItem ) {
+							$modifierExpr = $printer->prettyPrintExpr( $arrayItems[$i]->value );
+							$hook_modifiers[] = $modifierExpr;
+						}
+					}
+				} else {
+					// Fallback: print the whole expression
+					$hook_name = $printer->prettyPrintExpr( $firstArg );
+				}
+			} else {
+				$hook_name = $printer->prettyPrintExpr( $firstArg );
+			}
+
 			$hook_name = preg_replace( '/^"(.*)"$/', '$1', $hook_name );
 			$hook_name = preg_replace( "/^'(.*)'$/", '$1', $hook_name );
 
@@ -383,6 +410,10 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 						'Hook "%s" contains a `@return` tag, which is not supported.' . "\n",
 						$hook_name,
 					);
+				} elseif ( $tag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_ ) {
+					// @var tags in hook docblocks are typically documentation artifacts, skip them
+					$tag_data['types'] = explode( '|', (string) $tag->getType() );
+					$tag_data['variable'] = '$' . $tag->getVariableName();
 				} elseif ( $tag instanceof \phpDocumentor\Reflection\DocBlock\Tags\InvalidTag ) {
 					printf(
 						'Unknown tag type "%s" (@%s) for hook "%s" in file "%s".',
@@ -456,10 +487,21 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 				case 'apply_filters_ref_array':
 					$out['type'] = 'filter_reference';
 					break;
+				case 'gf_do_action':
+					$out['type'] = 'action';
+					break;
+				case 'gf_apply_filters':
+					$out['type'] = 'filter';
+					break;
 			}
 
 			$out['doc'] = $doc;
 			$out['args'] = count( $expr->args ) - 1;
+
+			// Add modifiers for Gravity Forms style hooks (form_id, field_id, entry_id, etc.)
+			if ( ! empty( $hook_modifiers ) ) {
+				$out['modifiers'] = $hook_modifiers;
+			}
 
 			$output[] = $out;
 		}

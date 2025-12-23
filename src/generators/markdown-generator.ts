@@ -83,6 +83,25 @@ export class MarkdownGenerator {
     // Add hook name and description
     content.push(`# ${type}: ${this.sanitizeHookName(hook.name)}\n`);
 
+    // Add dynamic hook name modifiers section if present
+    if (hook.modifiers && hook.modifiers.length > 0) {
+      content.push(':::info[Dynamic Hook Name]\n');
+      content.push('This hook supports dynamic naming with the following modifiers:\n');
+      hook.modifiers.forEach((modifier, index) => {
+        content.push(`${index + 1}. \`${this.sanitizeContent(modifier)}\``);
+      });
+      content.push('\n');
+      content.push(`**Example hook names:**`);
+      content.push(`- \`${this.sanitizeHookName(hook.name)}\` (base hook)`);
+      // Generate example with first modifier
+      const cleanName = hook.name.replace(/^['"]|['"]$/g, '');
+      content.push(`- \`${cleanName}_1\` (with first modifier value)`);
+      if (hook.modifiers.length > 1) {
+        content.push(`- \`${cleanName}_1_2\` (with all modifier values)`);
+      }
+      content.push(':::\n');
+    }
+
     // Add deprecation notice prominently at the top
     if (hook.doc.deprecated && hook.doc.deprecated.length > 0) {
       content.push(':::warning[Deprecated]\n');
