@@ -362,6 +362,23 @@ export class HookCollector {
               // Code typically starts with add_filter, add_action, apply_filters, do_action, <?, or function
               const codeStartMatch = content.match(/^(.*?)((?:add_filter|add_action|apply_filters|do_action|<\?php|function\s)[\s\S]*)$/s);
               if (codeStartMatch && codeStartMatch[1]) {
+                // A leading code comment belongs to the code example, not a prose
+                // description. Only treat the pre-code text as a description when
+                // real prose remains after stripping block comments (/* ... */)
+                // and line comments (// or #) — otherwise the whole example,
+                // comment included, is code.
+                const leadProse = codeStartMatch[1]
+                  .replace(/\/\*[\s\S]*?\*\//g, '')
+                  .split('\n')
+                  .map((line) => line.trim())
+                  .filter((line) => line !== '' && !line.startsWith('//') && !line.startsWith('#'))
+                  .join('');
+                if (leadProse === '') {
+                  return {
+                    description: '',
+                    code: content.trim(),
+                  };
+                }
                 return {
                   description: codeStartMatch[1].trim(),
                   code: codeStartMatch[2].trim(),
