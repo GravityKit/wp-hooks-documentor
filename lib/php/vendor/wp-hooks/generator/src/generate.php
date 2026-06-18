@@ -153,8 +153,12 @@ function fix_newlines( $text ) {
 	);
 
 	// Merge consecutive non-blank lines together by replacing the newlines with a space.
+	// Three guards keep intentional structure intact:
+	//   (?<![\n\r])      preserve blank lines: never merge a newline that follows another newline.
+	//   (?!\s*[\n\r])    preserve blank lines: never merge a newline that precedes another newline.
+	//   (?![ \t]*(?:[-*+]|\d+\.)\s)  preserve Markdown list items (-, *, + or ordered "N.") on the next line.
 	$text = preg_replace(
-		"/[\n\r](?!\s*[\n\r])/m",
+		"/(?<![\n\r])[\n\r](?!\s*[\n\r])(?![ \t]*(?:[-*+]|\d+\.)\s)/m",
 		' ',
 		$text
 	);

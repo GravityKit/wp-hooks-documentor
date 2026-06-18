@@ -120,10 +120,10 @@ export class MarkdownGenerator {
     }
 
     if (hook.doc.description) {
-      content.push(`${this.sanitizeContent(hook.doc.description, true)}\n`);
+      content.push(`${this.sanitizeContent(hook.doc.description)}\n`);
     }
     if (hook.doc.long_description) {
-      content.push(`${this.sanitizeContent(hook.doc.long_description, true)}\n`);
+      content.push(`${this.sanitizeContent(hook.doc.long_description)}\n`);
     }
 
     // Add parameters section if there are parameters
@@ -157,7 +157,7 @@ export class MarkdownGenerator {
           content.push(`### Example ${index + 1}\n`);
         }
         if (example.description) {
-          content.push(`${this.sanitizeContent(example.description, true)}\n`);
+          content.push(`${this.sanitizeContent(example.description)}\n`);
         }
         content.push('```php');
         content.push(example.code);
