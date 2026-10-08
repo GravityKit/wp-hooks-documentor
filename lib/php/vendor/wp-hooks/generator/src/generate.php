@@ -266,6 +266,13 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 				}
 			}
 
+			// A first-class callable such as apply_filters(...) passes no hook name.
+			$has_hook_name = isset( $expr->args[0] ) && $expr->args[0] instanceof Node\Arg;
+
+			if ( ! $has_hook_name ) {
+				continue;
+			}
+
 			$is_deprecated_call = in_array( $funcNameStr, [ 'do_action_deprecated', 'apply_filters_deprecated' ], true );
 			$deprecation        = $is_deprecated_call ? parse_deprecation_args( $expr ) : null;
 
