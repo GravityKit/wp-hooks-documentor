@@ -5,6 +5,7 @@ import {
   RawHookCollection,
   RawHookData,
   HookCollectorConfig,
+  HookDeprecation,
 } from '../utils/types';
 import fsExtra from 'fs-extra';
 import path from 'path';
@@ -79,8 +80,16 @@ export class HookCollector {
           return this.transformHook(hooks[0]);
         }
 
-        // Merge multiple hooks with the same name
-        const mergedHook = { ...hooks[0] };
+        // Merge multiple hooks with the same name. Prefer a definition that has
+        // a docblock, so a bare call site does not hide the documented one.
+        const documented = hooks.find((h) => h.doc?.description || h.doc?.tags?.length) || hooks[0];
+        const mergedHook = { ...documented };
+
+        // A hook fired as deprecated at any call site is deprecated.
+        const deprecation = hooks.find((h) => h.deprecation)?.deprecation;
+        if (deprecation) {
+          mergedHook.deprecation = deprecation;
+        }
 
         // Collect sources of all hooks.
         mergedHook.files = [];
@@ -96,10 +105,44 @@ export class HookCollector {
       });
     };
 
-    return {
+    const collection = {
       actions: prepareHooks(rawData.actions.hooks),
       filters: prepareHooks(rawData.filters.hooks),
     };
+
+    this.linkDeprecationReplacements(collection);
+
+    return collection;
+  }
+
+  /**
+   * Turns a hook name in a deprecation notice into a link to that hook's page,
+   * so a reader who lands on the old name can reach the new one in one click.
+   * Only names this run documented are linked; anything else stays code.
+   */
+  private linkDeprecationReplacements(collection: HookCollection): void {
+    const pages = new Map<string, { id: string; dir: 'Actions' | 'Filters' }>();
+    collection.actions.forEach((h) => pages.set(h.name, { id: h.id, dir: 'Actions' }));
+    collection.filters.forEach((h) => pages.set(h.name, { id: h.id, dir: 'Filters' }));
+
+    const link = (hooks: Hook[], dir: 'Actions' | 'Filters'): void => {
+      hooks.forEach((hook) => {
+        hook.doc.deprecated?.forEach((dep) => {
+          dep.description = dep.description.replace(/`([^`{}\s]+)`/g, (match, name: string) => {
+            const target = pages.get(name);
+            if (!target || name === hook.name) {
+              return match;
+            }
+            const href =
+              target.dir === dir ? `./${target.id}.md` : `../${target.dir}/${target.id}.md`;
+            return `[\`${name}\`](${href})`;
+          });
+        });
+      });
+    };
+
+    link(collection.actions, 'Actions');
+    link(collection.filters, 'Filters');
   }
 
   private escapeHookName(hookName: string): string {
@@ -211,6 +254,52 @@ export class HookCollector {
       .replace(/^_/, '');
   }
 
+  /**
+   * Combines what the deprecation call says with any @deprecated tag.
+   *
+   * The call's version wins: it is what the runtime notice reports, and a
+   * docblock written later can disagree with it. The tag's prose is kept,
+   * and the replacement is appended when the prose does not name it.
+   */
+  private mergeDeprecation(
+    deprecation: HookDeprecation | undefined,
+    fromTags: Array<{ version: string; description: string }>
+  ): Array<{ version: string; description: string }> {
+    if (!deprecation) {
+      return fromTags;
+    }
+
+    // An inline {@see 'hook'} reads as noise in the notice; show the name as code.
+    const tagDescription = fromTags
+      .map((d) =>
+        d.description
+          .replace(/\{@(?:see|link)\s+['"]?([^'"\s}]+)['"]?\s*\}/g, '`$1`')
+          // A second version number (`@deprecated 3.0.0 1.5.2`) is a stray @since, not prose.
+          .replace(/^\d+(?:\.\d+)+\s*/, '')
+      )
+      .filter(Boolean)
+      .join(' ');
+    const parts: string[] = [];
+
+    if (tagDescription) {
+      parts.push(tagDescription);
+    } else if (deprecation.message) {
+      parts.push(deprecation.message);
+    }
+
+    const replacement = deprecation.replacement;
+    if (replacement && !tagDescription.includes(replacement)) {
+      parts.push(`Use \`${replacement}\` instead.`);
+    }
+
+    return [
+      {
+        version: deprecation.version || fromTags.find((d) => d.version)?.version || '',
+        description: parts.join(' '),
+      },
+    ];
+  }
+
   private transformHook(hook: RawHookData['hooks'][0]): Hook {
     const hookName = this.escapeHookName(hook.name);
     const hookId = this.getHookId(hookName);
@@ -312,7 +401,8 @@ export class HookCollector {
                 description: parsed.description,
               };
             }) || [],
-        deprecated:
+        deprecated: this.mergeDeprecation(
+          hook.deprecation,
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'deprecated')
             ?.map((tag) => {
@@ -331,7 +421,8 @@ export class HookCollector {
                 version: '',
                 description: content,
               };
-            }) || [],
+            }) || []
+        ),
         examples:
           hook.doc?.tags
             ?.filter((tag) => tag.name === 'example')

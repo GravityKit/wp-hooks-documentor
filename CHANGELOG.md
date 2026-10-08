@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Support for `@see` and `@link` tags in hook documentation. These are rendered in a "See Also" section with proper link formatting.
 - Support for `@deprecated` tag in hook documentation. Deprecated hooks display a prominent warning admonition and are marked with ⚠️ in the index listing.
 - Support for `@example` tag in hook documentation. Multiple examples per hook are supported, rendered as PHP code blocks with optional descriptions.
+- Hooks fired through `apply_filters_deprecated()`, `do_action_deprecated()`, or a plugin wrapper with the same arguments (a class ending in `Deprecated_Hook_Notices` or `DeprecatedHookNotices`, such as `GravityView_Deprecated_Hook_Notices::apply_filters()`) are now documented. The version and replacement passed to the call fill the deprecation notice, and such a hook gets a page even without a docblock.
 - New `--skip-build` CLI option to parse hooks and generate markdown without building the Docusaurus site.
 - New `skipBuild` configuration option for the same functionality via config file.
 

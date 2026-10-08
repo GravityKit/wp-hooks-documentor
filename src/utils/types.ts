@@ -96,6 +96,12 @@ export interface RawHookData {
     files?: HookFile[];
     line?: number;
     modifiers?: string[];
+    /**
+     * Present when the hook is fired through apply_filters_deprecated(),
+     * do_action_deprecated() or a plugin wrapper with the same arguments.
+     * Values are read from the call itself, so they match the runtime notice.
+     */
+    deprecation?: HookDeprecation;
     doc?: {
       description?: string;
       long_description?: string;
@@ -111,6 +117,12 @@ export interface RawHookData {
     };
     source: string;
   }>;
+}
+
+export interface HookDeprecation {
+  version?: string;
+  replacement?: string;
+  message?: string;
 }
 
 export interface RawHookCollection {

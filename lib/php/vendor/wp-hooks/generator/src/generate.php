@@ -212,6 +212,9 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 		// Gravity Forms hook functions that support dynamic modifiers (form_id, field_id, etc.)
 		'gf_do_action',
 		'gf_apply_filters',
+		// WordPress core wrappers that fire a deprecated hook: ( $hook, $args, $version, $replacement, $message ).
+		'do_action_deprecated',
+		'apply_filters_deprecated',
 	];
 
 	foreach ( $files as $filename ) {
@@ -230,7 +233,7 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 
 		// Create a new FindingVisitor instance
 		$visitor = new DocblockFinderVisitor(
-			fn ( Node $node ) => ( $node instanceof Node\Expr\FuncCall )
+			fn ( Node $node ) => ( $node instanceof Node\Expr\FuncCall || $node instanceof Node\Expr\StaticCall )
 		);
 
 		// Traverse the AST and resolve names
@@ -238,22 +241,40 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 		$traverser->addVisitor( $visitor );
 		$traverser->traverse($stmts);
 
-		/** @var array<Node\Expr\FuncCall> $found */
+		/** @var array<Node\Expr\FuncCall|Node\Expr\StaticCall> $found */
 		$found = $visitor->getFoundNodes();
 
 		// Process the parsed statements to find calls to do_action() and apply_filters()
 		foreach ( $found as $expr ) {
-			$funcName = $expr->name;
+			if ( $expr instanceof Node\Expr\StaticCall ) {
+				$funcNameStr = deprecated_wrapper_function( $expr );
 
-			if (! ($funcName instanceof Node\Name)) {
+				if ( null === $funcNameStr ) {
+					continue;
+				}
+			} else {
+				$funcName = $expr->name;
+
+				if (! ($funcName instanceof Node\Name)) {
+					continue;
+				}
+
+				$funcNameStr = $funcName->toString();
+
+				if ( ! in_array( $funcNameStr, $funcs, true ) ) {
+					continue;
+				}
+			}
+
+			// A first-class callable such as apply_filters(...) passes no hook name.
+			$has_hook_name = isset( $expr->args[0] ) && $expr->args[0] instanceof Node\Arg;
+
+			if ( ! $has_hook_name ) {
 				continue;
 			}
 
-			$funcNameStr = $funcName->toString();
-
-			if ( ! in_array( $funcNameStr, $funcs, true ) ) {
-				continue;
-			}
+			$is_deprecated_call = in_array( $funcNameStr, [ 'do_action_deprecated', 'apply_filters_deprecated' ], true );
+			$deprecation        = $is_deprecated_call ? parse_deprecation_args( $expr ) : null;
 
 			$docblock = $expr->getDocComment();
 			$line     = $expr->getLine();
@@ -306,6 +327,12 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 				'show_recent_comments_widget_style',
 			];
 
+			// A deprecated hook with no docblock is still worth a page: it is how a
+			// developer who sees the deprecation notice finds the replacement.
+			if ( ! ( $docblock instanceof Doc ) && null !== $deprecation ) {
+				$docblock = new Doc( '/** */' );
+			}
+
 			if ( ! ( $docblock instanceof Doc ) ) {
 				echo sprintf(
 					"Hook '%s' in file '%s' is missing a docblock.\n",
@@ -318,7 +345,7 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 
 			$dbt = $docblock ? $docblock->getText() : '';
 
-			if ( empty( $dbt ) ) {
+			if ( empty( $dbt ) && null === $deprecation ) {
 				if ( in_array( $hook_name, $known_problem_hooks, true ) ) {
 					continue;
 				}
@@ -497,10 +524,28 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 				case 'gf_apply_filters':
 					$out['type'] = 'filter';
 					break;
+				case 'do_action_deprecated':
+					$out['type'] = 'action';
+					break;
+				case 'apply_filters_deprecated':
+					$out['type'] = 'filter';
+					break;
 			}
 
 			$out['doc'] = $doc;
 			$out['args'] = count( $expr->args ) - 1;
+
+			if ( $is_deprecated_call ) {
+				// The hook's own arguments are passed as an array in the second position.
+				$hook_args   = $expr->args[1]->value ?? null;
+				$out['args'] = $hook_args instanceof Node\Expr\Array_ ? count( $hook_args->items ) : 0;
+			}
+
+			// Version and replacement as passed to the deprecation call, which is
+			// what the runtime notice reports to the developer.
+			if ( null !== $deprecation ) {
+				$out['deprecation'] = $deprecation;
+			}
 
 			// Add modifiers for Gravity Forms style hooks (form_id, field_id, entry_id, etc.)
 			if ( ! empty( $hook_modifiers ) ) {
@@ -516,6 +561,73 @@ function hooks_parse_files( array $files, string $root, array $ignore_hooks ) : 
 	} );
 
 	return $output;
+}
+
+/**
+ * Maps a static call to a deprecated-hook wrapper onto the core function it mirrors.
+ *
+ * Plugins wrap apply_filters_deprecated() in their own class to control when the
+ * notice shows, e.g. GravityView_Deprecated_Hook_Notices::apply_filters(). Such a
+ * wrapper is recognized by a class name ending in Deprecated_Hook_Notices or
+ * DeprecatedHookNotices and must take the same arguments as the core function.
+ *
+ * @return string|null 'apply_filters_deprecated', 'do_action_deprecated', or null.
+ */
+function deprecated_wrapper_function( Node\Expr\StaticCall $expr ) : ?string {
+	if ( ! ( $expr->class instanceof Node\Name ) || ! ( $expr->name instanceof Node\Identifier ) ) {
+		return null;
+	}
+
+	$class_name   = $expr->class->getLast();
+	$is_wrapper   = (bool) preg_match( '/Deprecated_?Hook_?Notices$/i', $class_name );
+	$method_name  = $expr->name->toString();
+
+	if ( ! $is_wrapper ) {
+		return null;
+	}
+
+	switch ( $method_name ) {
+		case 'apply_filters':
+			return 'apply_filters_deprecated';
+		case 'do_action':
+			return 'do_action_deprecated';
+	}
+
+	return null;
+}
+
+/**
+ * Reads the version, replacement and message from a deprecated hook call.
+ *
+ * Only string literals are read; a value computed at runtime is left out.
+ *
+ * @return array{version?: string, replacement?: string, message?: string}
+ */
+function parse_deprecation_args( Node\Expr $expr ) : array {
+	$fields = [
+		2 => 'version',
+		3 => 'replacement',
+		4 => 'message',
+	];
+
+	$deprecation = [];
+
+	foreach ( $fields as $position => $field ) {
+		$arg = $expr->args[ $position ] ?? null;
+
+		if ( ! ( $arg instanceof Node\Arg ) || ! ( $arg->value instanceof Node\Scalar\String_ ) ) {
+			continue;
+		}
+
+		// Some callers wrap the replacement in Markdown backticks.
+		$value = trim( trim( $arg->value->value ), '`' );
+
+		if ( '' !== $value ) {
+			$deprecation[ $field ] = $value;
+		}
+	}
+
+	return $deprecation;
 }
 
 /**
