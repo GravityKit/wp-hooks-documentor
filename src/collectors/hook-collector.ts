@@ -125,7 +125,7 @@ export class HookCollector {
     collection.actions.forEach((h) => pages.set(h.name, { id: h.id, dir: 'Actions' }));
     collection.filters.forEach((h) => pages.set(h.name, { id: h.id, dir: 'Filters' }));
 
-    const link = (hooks: Hook[], dir: 'Actions' | 'Filters') => {
+    const link = (hooks: Hook[], dir: 'Actions' | 'Filters'): void => {
       hooks.forEach((hook) => {
         hook.doc.deprecated?.forEach((dep) => {
           dep.description = dep.description.replace(/`([^`{}\s]+)`/g, (match, name: string) => {
